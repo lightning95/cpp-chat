@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/html">
+        <file>favicon.ico</file>
+        <file>jquery.js</file>
+        <file>foot</file>
+        <file>forms</file>
+        <file>head</file>
+    </qresource>
+</RCC>
