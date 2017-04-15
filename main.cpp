@@ -27,8 +27,8 @@ int main() {
     replaceSignals();
     try {
         chat.addPort(4321);
-        chat.start();
     } catch (std::runtime_error &e){
         std::cerr << "Can't add port to chat: " << e.what() << std::endl;
     }
+    chat.start();
 }

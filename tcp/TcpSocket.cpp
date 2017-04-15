@@ -1,23 +1,30 @@
-#include "TcpSocket.h"
+#include "tcp/TcpSocket.h"
 
 using std::cout;
 using std::endl;
 
-TcpSocket::TcpSocket(TcpServer* serv, FD&& socket)
-    : server(serv)
-    , buffersize(0)
-    , fd(std::move(socket)) {
-    cout << "Creating TCP socket: " << fd.getfd() << endl;
+TcpSocket::TcpSocket(TcpSocket&& sock)
+    : Socket(std::move(sock))
+    , buffersize(0) {
+    for (size_t i = 0; i < buffersize; i++) {
+        std::swap(buffer[i], sock.buffer[i]);
+    }
+    std::swap(buffersize, sock.buffersize);
 }
 
-TcpSocket::TcpSocket(TcpSocket&& sock)
-    : server(sock.server)
-    , buffersize(0)
-    , fd(std::move(sock.fd)) {
+TcpSocket::TcpSocket(FD &&tfd, std::function<void (uint32_t, TcpSocket &)> const &z)
+    : Socket(std::move(tfd), [z](uint32_t a, Socket &socket) {
+        return z(a, dynamic_cast<TcpSocket &>(socket));
+     })
+    , buffersize(0) {
+    makeSocketNonBlocking(fd);
+    epollAdd(fd);
 }
+
 
 TcpSocket::~TcpSocket() {
-    cout << "Destructing socket: " << fd.getfd() << endl;
+    if (fd.getfd() != fd.NONE)
+        cout << "Destructing socket: " << fd.getfd() << endl;
 }
 
 int TcpSocket::read(QString& str) {
@@ -48,7 +55,7 @@ int TcpSocket::write(const char * data, size_t size) {
     for (size_t i = 0; i < size; i++)
         buffer[buffersize + i] = data[i];
     buffersize += size;
-    server->epoll.modify(fd.getfd(), EPOLLOUT | EPOLLIN | EPOLLET | EPOLLRDHUP);
+    EpollWrap::getInstance().modify(fd.getfd(), EPOLLOUT | EPOLLIN | EPOLLET | EPOLLRDHUP);
     return 0;
 }
 
@@ -69,17 +76,16 @@ void TcpSocket::flush() {
     for (size_t i = count; i < buffersize; i++)
         buffer[i - count] = buffer[i];
     if (buffersize == count)
-        server->epoll.modify(fd.getfd(), EPOLLIN | EPOLLET | EPOLLRDHUP);
+        EpollWrap::getInstance().modify(fd.getfd(), EPOLLIN | EPOLLET | EPOLLRDHUP);
     cout << count << " bytes flushed\n";
     buffersize -= count;
 }
 
+void TcpSocket::handle(uint32_t event) {
+    handler(event, *this);
+}
+
 TcpSocket &TcpSocket::operator=(TcpSocket &&sock) {
-    std::swap(fd, sock.fd);
-    std::swap(server, sock.server);
-    for (size_t i = 0; i < buffersize; i++) {
-        std::swap(buffer[i], sock.buffer[i]);
-    }
-    std::swap(buffersize, sock.buffersize);
+    std::swap(*this, sock);
     return *this;
 }

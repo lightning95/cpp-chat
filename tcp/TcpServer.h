@@ -15,27 +15,22 @@
 #include "library/EpollWrap.h"
 #include "library/FD.h"
 #include "tcp/TcpSocket.h"
+#include "tcp/ServerSocket.h"
 
 class TcpSocket;
 
 enum EventType {NEWDATA, ERROR, HUP};
 
 class TcpServer {
-    static const int QUEUE_SIZE = 10;
-
-    std::map<int, TcpSocket> sockets;
-    std::map<int, std::function<void(uint32_t)>> callbacks;
+    std::map<int, Socket&> callbacks;
+    std::map<int, TcpSocket> tcpSockets;
+    std::map<int, ServerSocket> serverSockets;
 
     EpollWrap &epoll;
-    std::vector<FD> tcpsockets;
     bool running;
 
-    static void listenSocket(FD const&);
-    static void makeSocketNonBlocking(FD const&);
-    static FD createAndBind(int);//gets port, returns fd
-
-    void connectionHandler(std::function<void(TcpSocket &, EventType)>, int, uint32_t);
-    void dataHandler(std::function<void(TcpSocket &, EventType)>, int, uint32_t);
+    void connectionHandler(std::function<void(TcpSocket &, EventType)>, ServerSocket &, uint32_t);
+    void dataHandler(std::function<void(TcpSocket &, EventType)>, TcpSocket &, uint32_t);
 
 public:
     TcpServer();

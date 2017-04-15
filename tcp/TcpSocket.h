@@ -9,28 +9,25 @@
 #include <memory>
 
 #include "library/FD.h"
-#include "tcp/TcpServer.h"
+#include "tcp/Socket.h"
 
 class TcpServer;
 
-class TcpSocket {
+class TcpSocket : public Socket {
     static const int BUFFER_SIZE = 100000;
-    TcpServer* server;
     size_t buffersize;
     char buffer[BUFFER_SIZE];
-    FD fd;
 
 public:
-    TcpSocket(TcpServer*, FD &&);
+    TcpSocket(FD &&fd, std::function<void(uint32_t, TcpSocket &)> const &);
     TcpSocket(TcpSocket &&);
     ~TcpSocket();
     int read(QString&);
     int write(const char * data, size_t size);
     void flush();
+    void handle(uint32_t event);
 
     TcpSocket &operator=(TcpSocket &&);
-
-    friend class TcpServer;
 };
 
 #endif // TCPSOCKET_H

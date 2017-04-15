@@ -32,15 +32,12 @@ int EpollWrap::add(int fd, uint32_t events) {
     event.events = events;
     if (epoll_ctl(epollfd.getfd(), EPOLL_CTL_ADD, fd, &event) == -1)
         return -1;
-//    callbacks[fd] = callback;
     cout << "Added " << fd << " descriptor to epoll.\n";
     return 0;
 }
 
 int EpollWrap::remove(int fd) {
     cout << "removing from epoll: " << fd << endl;
-//    assert(callbacks.find(fd) != callbacks.end());
-//    callbacks.erase(fd);
     epoll_event event;
     memset(&event, 0, sizeof(epoll_event));
     if (epoll_ctl(epollfd.getfd(), EPOLL_CTL_DEL, fd, &event) == -1)
@@ -50,7 +47,6 @@ int EpollWrap::remove(int fd) {
 
 int EpollWrap::modify(int fd, uint32_t events) {
     cout << "modifying " << fd << " socket\n";
-//    assert(callbacks.find(fd) != callbacks.end());
     epoll_event event;
     memset(&event, 0, sizeof(epoll_event));
     event.events = events;

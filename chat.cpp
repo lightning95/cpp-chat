@@ -89,8 +89,7 @@ void Chat::sendMessages(HttpSocket& socket){
 
 void Chat::request(HttpRequest& http_request, HttpSocket& socket) {
     cout << "start processing\n";
-    if (http_request.isValid() == 0)
-        socket.write(HttpResponse(400, "Chat", "text/html", 0, ""));
+    if (http_request.isValid() == 0)                    socket.write(HttpResponse(400, "Chat", "text/html", 0, "")); // send400
     else if (http_request.uri == "/favicon.ico")        sendIcon(socket);
     else if (http_request.uri == "/jquery.js")          sendJquery(socket);
     else if (http_request.uri.mid(0, 9) == "/messages") sendMessages(socket);

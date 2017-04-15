@@ -20,7 +20,9 @@ SOURCES += main.cpp \
     http/HttpResponse.cpp \
     library/EpollWrap.cpp \
     chat.cpp \
-    library/FD.cpp
+    library/FD.cpp \
+    tcp/Socket.cpp \
+    tcp/ServerSocket.cpp
 
 HEADERS += \
     http/HttpServer.h \
@@ -31,7 +33,9 @@ HEADERS += \
     http/HttpResponse.h \
     library/EpollWrap.h \
     chat.h \
-    library/FD.h
+    library/FD.h \
+    tcp/Socket.h \
+    tcp/ServerSocket.h
 
 RESOURCES += \
     html/Resources.qrc

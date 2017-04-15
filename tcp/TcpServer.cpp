@@ -1,4 +1,5 @@
-#include "TcpServer.h"
+#include "tcp/TcpServer.h"
+#include "tcp/Socket.h"
 
 using std::cout;
 using std::endl;
@@ -8,47 +9,29 @@ TcpServer::TcpServer() : epoll(EpollWrap::getInstance()) {
 }
 
 TcpServer::~TcpServer() {
-    for (auto e : callbacks) {
-        cout << "closing " << e.first << " descriptor.\n";
-        e.second(EPOLLRDHUP);
-    }
 }
 
 void TcpServer::addPort(int port, std::function<void(TcpSocket &, EventType)> newData) {
     cout << "Adding tcp port: " << port << endl;
 
-    FD tcpfd = createAndBind(port);
-    makeSocketNonBlocking(tcpfd);
-    listenSocket(tcpfd);
-
-//    cout << "Adding port " << port << " to epoll\n";
-
-    callbacks[tcpfd.getfd()] = bind(&TcpServer::connectionHandler, this, newData, tcpfd.getfd(), std::placeholders::_1);
-    if (epoll.add(tcpfd.getfd(), EPOLLIN | EPOLLET | EPOLLRDHUP) < 0)
-         throw std::runtime_error("Can't add tcpfd to epoll");
-
-    int x = tcpfd.getfd();
-    try {
-        tcpsockets.push_back(std::move(tcpfd));
-    } catch (std::exception& e) {
-        callbacks.erase(x);
-        epoll.remove(x);
-//        epoll.remove(tcpfd.getfd());
-        throw std::runtime_error("Can't add tcpfd to tcpvector");
-    }
+    ServerSocket socket(port, bind(&TcpServer::connectionHandler, this, newData, std::placeholders::_2, std::placeholders::_1));
+    int x = socket.getfd();
+    auto added = serverSockets.emplace(std::make_pair(x, std::move(socket)));
+    callbacks.emplace(std::pair<int, Socket&>(x, added.first->second));
 
     cout << "Added port " << port << " to epoll\n";
 }
 
-void TcpServer::connectionHandler(std::function<void(TcpSocket &, EventType)> newData, int fd, uint32_t event) {
+void TcpServer::connectionHandler(std::function<void(TcpSocket &, EventType)> newData, ServerSocket &socket, uint32_t event) {
+    int fd = socket.getfd();
     if (event & EPOLLRDHUP) {
-        epoll.remove(fd);
         callbacks.erase(fd);
+        serverSockets.erase(fd);
         return;
     }
     if (event & EPOLLERR) {
         cout << "Error on TCPsocket\n";
-        epoll.remove(fd);
+        serverSockets.erase(fd);
         callbacks.erase(fd);
         return;
     }
@@ -66,57 +49,38 @@ void TcpServer::connectionHandler(std::function<void(TcpSocket &, EventType)> ne
                 }
             }
             // Make the incoming socket non-blocking and add it to the epoll.
-            try{
-                makeSocketNonBlocking(infd);
-            } catch (std::runtime_error&e ){
-                continue;
-            }
-            if (epoll.add(infd.getfd(), EPOLLIN | EPOLLET | EPOLLRDHUP) < 0){
-                cout << "Can't add to epoll\n";
-                continue;
-            }
-            callbacks[infd.getfd()] = bind(&TcpServer::dataHandler, this, newData, infd.getfd(), std::placeholders::_1);
-            int x = infd.getfd();
             try {
-                sockets.emplace(std::make_pair(x, TcpSocket(this, std::move(infd))));
+                TcpSocket socket(std::move(infd), bind(&TcpServer::dataHandler, this, newData, std::placeholders::_2, std::placeholders::_1));
+                int newFd = socket.getfd();
+                auto added = tcpSockets.emplace(std::make_pair(newFd, std::move(socket)));
+                callbacks.emplace(std::pair<int, Socket&>(newFd, added.first->second));
             } catch (std::exception& e) {
-//                epoll.remove(infd);
-                  epoll.remove(x);
-                  callbacks.erase(x);
+                cout << "Exception happened while creating TcpSocket\n";
                 continue;
             }
         }
     }
 }
 
-void TcpServer::dataHandler(std::function<void(TcpSocket &, EventType)> dataHandler, int fd, uint32_t event) {
+void TcpServer::dataHandler(std::function<void(TcpSocket &, EventType)> dataHandler, TcpSocket &socket, uint32_t event) {
+    int fd = socket.getfd();
     if (event & EPOLLRDHUP) {
-        auto it = sockets.find(fd);
-        assert(it != sockets.end());
-        dataHandler(it->second, HUP);
-        epoll.remove(fd);
-        sockets.erase(fd);
+        dataHandler(socket, HUP);
         callbacks.erase(fd);
+        tcpSockets.erase(fd);
         return;
     }
     if (event & EPOLLERR) {
-        auto it = sockets.find(fd);
-        assert(it != sockets.end());
-        dataHandler(it->second, ERROR);
-        epoll.remove(fd);
-        sockets.erase(fd);
+        dataHandler(socket, ERROR);
         callbacks.erase(fd);
+        tcpSockets.erase(fd);
         return;
     }
     if (event & EPOLLIN) {
-        auto it = sockets.find(fd);
-        assert(it != sockets.end());
-        dataHandler(it->second, NEWDATA);
+        dataHandler(socket, NEWDATA);
     }
     if (event & EPOLLOUT) {
-        auto it = sockets.find(fd);
-        assert(it != sockets.end());
-        it->second.flush();
+        socket.flush();
     }
 }
 
@@ -138,7 +102,10 @@ void TcpServer::start() {
             if (events[i].events & EPOLLRDHUP)
                 cout << "EPOLLRDHUP" << endl;
             cout << events[i].data.fd << " " << events[i].events << endl;
-            callbacks[events[i].data.fd](events[i].events);
+            std::map<int, Socket&>::iterator it = callbacks.find(events[i].data.fd);
+
+            assert(it != callbacks.end());
+            it->second.handle(events[i].events);
         }
         cout << "==============================\n";
     }
@@ -146,54 +113,4 @@ void TcpServer::start() {
 
 void TcpServer::stop() {
     running = false;
-}
-
-FD TcpServer::createAndBind(int port) {
-    addrinfo hints;
-    addrinfo *result, *rp;
-
-    memset(&hints, 0, sizeof (struct addrinfo));
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
-
-    std::string portstr = std::to_string(port);
-    if (getaddrinfo (NULL, portstr.c_str(), &hints, &result) != 0)
-        throw std::runtime_error("Can't getAddrInfo " + std::to_string(port));
-
-    class ai {
-        addrinfo *a;
-    public :
-        ai(addrinfo *a) : a(a) {}
-        ~ai() {
-            freeaddrinfo(a);
-        }
-    } tmp(result);
-
-    for (rp = result; rp != NULL; rp = rp->ai_next) {
-        FD res(socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol));
-        if (res.getfd() == -1) continue;
-        int t = 1;
-        if (setsockopt(res.getfd(), SOL_SOCKET, SO_REUSEADDR, &t, sizeof(t)) == -1) {
-            cout << "Can't make socket reusable\n";
-            continue;
-        }
-        if (bind(res.getfd(), rp->ai_addr, rp->ai_addrlen) == 0)
-            return res;
-    }
-    throw std::runtime_error("No address succeeded");
-}
-
-void TcpServer::makeSocketNonBlocking(FD const& fd) {
-    int flags = fcntl (fd.getfd(), F_GETFL, 0);
-    if (flags == -1) //return -1;
-        throw std::runtime_error("Can't make socket nonblocking");
-    flags |= O_NONBLOCK;
-    if (fcntl (fd.getfd(), F_SETFL, flags) == -1) //return -1;
-        throw std::runtime_error("Can't make socket nonblocking");
-}
-
-void TcpServer::listenSocket(FD const& fd){
-    if (listen(fd.getfd(), QUEUE_SIZE) == -1)
-        throw std::runtime_error("Listen error");
 }

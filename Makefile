@@ -14,7 +14,7 @@ CC            = gcc
 CXX           = g++
 DEFINES       = -DQT_NO_DEBUG -DQT_CORE_LIB
 CFLAGS        = -m64 -pipe -O2 -Wall -W -D_REENTRANT -fPIC $(DEFINES)
-CXXFLAGS      = -m64 -pipe -O0 -std=c++14 -g -Wall -W -D_REENTRANT -fPIC $(DEFINES)
+CXXFLAGS      = -m64 -pipe -O0 -g -std=gnu++14 -Wall -W -D_REENTRANT -fPIC $(DEFINES)
 INCPATH       = -I. -isystem /usr/include/x86_64-linux-gnu/qt5 -isystem /usr/include/x86_64-linux-gnu/qt5/QtCore -I. -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64
 QMAKE         = /usr/lib/x86_64-linux-gnu/qt5/bin/qmake
 DEL_FILE      = rm -f
@@ -33,7 +33,7 @@ MOVE          = mv -f
 TAR           = tar -cf
 COMPRESS      = gzip -9f
 DISTNAME      = chat1.0.0
-DISTDIR = /home/lightning95/studies/c++/chat/.tmp/chat1.0.0
+DISTDIR = /home/lightning95/studies/c++/cpp-chat/.tmp/chat1.0.0
 LINK          = g++
 LFLAGS        = -m64 -Wl,-O1
 LIBS          = $(SUBLIBS) -lQt5Core -lpthread 
@@ -49,15 +49,17 @@ OBJECTS_DIR   = ./
 ####### Files
 
 SOURCES       = main.cpp \
-		library/HttpServer.cpp \
-		library/TcpServer.cpp \
-		library/TcpSocket.cpp \
-		library/HttpRequest.cpp \
-		library/HttpSocket.cpp \
-		library/HttpResponse.cpp \
+		http/HttpServer.cpp \
+		tcp/TcpServer.cpp \
+		tcp/TcpSocket.cpp \
+		http/HttpRequest.cpp \
+		http/HttpSocket.cpp \
+		http/HttpResponse.cpp \
 		library/EpollWrap.cpp \
 		chat.cpp \
-		library/FD.cpp qrc_Resources.cpp
+		library/FD.cpp \
+		tcp/Socket.cpp \
+		tcp/ServerSocket.cpp qrc_Resources.cpp
 OBJECTS       = main.o \
 		HttpServer.o \
 		TcpServer.o \
@@ -68,6 +70,8 @@ OBJECTS       = main.o \
 		EpollWrap.o \
 		chat.o \
 		FD.o \
+		Socket.o \
+		ServerSocket.o \
 		qrc_Resources.o
 DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/common/unix.conf \
@@ -130,24 +134,28 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/exceptions.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/yacc.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/lex.prf \
-		Chat.pro library/HttpServer.h \
-		library/TcpServer.h \
-		library/TcpSocket.h \
-		library/HttpRequest.h \
-		library/HttpSocket.h \
-		library/HttpResponse.h \
+		Chat.pro http/HttpServer.h \
+		tcp/TcpServer.h \
+		tcp/TcpSocket.h \
+		http/HttpRequest.h \
+		http/HttpSocket.h \
+		http/HttpResponse.h \
 		library/EpollWrap.h \
 		chat.h \
-		library/FD.h main.cpp \
-		library/HttpServer.cpp \
-		library/TcpServer.cpp \
-		library/TcpSocket.cpp \
-		library/HttpRequest.cpp \
-		library/HttpSocket.cpp \
-		library/HttpResponse.cpp \
+		library/FD.h \
+		tcp/Socket.h \
+		tcp/ServerSocket.h main.cpp \
+		http/HttpServer.cpp \
+		tcp/TcpServer.cpp \
+		tcp/TcpSocket.cpp \
+		http/HttpRequest.cpp \
+		http/HttpSocket.cpp \
+		http/HttpResponse.cpp \
 		library/EpollWrap.cpp \
 		chat.cpp \
-		library/FD.cpp
+		library/FD.cpp \
+		tcp/Socket.cpp \
+		tcp/ServerSocket.cpp
 QMAKE_TARGET  = chat
 DESTDIR       = #avoid trailing-slash linebreak
 TARGET        = chat
@@ -322,8 +330,8 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents html/Resources.qrc $(DISTDIR)/
-	$(COPY_FILE) --parents library/HttpServer.h library/TcpServer.h library/TcpSocket.h library/HttpRequest.h library/HttpSocket.h library/HttpResponse.h library/EpollWrap.h chat.h library/FD.h $(DISTDIR)/
-	$(COPY_FILE) --parents main.cpp library/HttpServer.cpp library/TcpServer.cpp library/TcpSocket.cpp library/HttpRequest.cpp library/HttpSocket.cpp library/HttpResponse.cpp library/EpollWrap.cpp chat.cpp library/FD.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents http/HttpServer.h tcp/TcpServer.h tcp/TcpSocket.h http/HttpRequest.h http/HttpSocket.h http/HttpResponse.h library/EpollWrap.h chat.h library/FD.h tcp/Socket.h tcp/ServerSocket.h $(DISTDIR)/
+	$(COPY_FILE) --parents main.cpp http/HttpServer.cpp tcp/TcpServer.cpp tcp/TcpSocket.cpp http/HttpRequest.cpp http/HttpSocket.cpp http/HttpResponse.cpp library/EpollWrap.cpp chat.cpp library/FD.cpp tcp/Socket.cpp tcp/ServerSocket.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -370,69 +378,81 @@ compiler_clean: compiler_rcc_clean
 ####### Compile
 
 main.o: main.cpp chat.h \
-		library/HttpResponse.h \
-		library/HttpRequest.h \
-		library/HttpSocket.h \
-		library/TcpSocket.h \
+		http/HttpResponse.h \
+		http/HttpRequest.h \
+		http/HttpSocket.h \
+		tcp/TcpSocket.h \
 		library/FD.h \
-		library/TcpServer.h \
+		tcp/TcpServer.h \
 		library/EpollWrap.h \
-		library/HttpServer.h
+		http/HttpServer.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o main.cpp
 
-HttpServer.o: library/HttpServer.cpp library/HttpServer.h \
-		library/HttpResponse.h \
-		library/HttpSocket.h \
-		library/TcpSocket.h \
+HttpServer.o: http/HttpServer.cpp http/HttpServer.h \
+		http/HttpResponse.h \
+		http/HttpSocket.h \
+		tcp/TcpSocket.h \
 		library/FD.h \
-		library/TcpServer.h \
+		tcp/TcpServer.h \
 		library/EpollWrap.h \
-		library/HttpRequest.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o HttpServer.o library/HttpServer.cpp
+		http/HttpRequest.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o HttpServer.o http/HttpServer.cpp
 
-TcpServer.o: library/TcpServer.cpp library/TcpServer.h \
+TcpServer.o: tcp/TcpServer.cpp tcp/TcpServer.h \
 		library/EpollWrap.h \
 		library/FD.h \
-		library/TcpSocket.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o TcpServer.o library/TcpServer.cpp
+		tcp/TcpSocket.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o TcpServer.o tcp/TcpServer.cpp
 
-TcpSocket.o: library/TcpSocket.cpp library/TcpSocket.h \
+TcpSocket.o: tcp/TcpSocket.cpp tcp/TcpSocket.h \
 		library/FD.h \
-		library/TcpServer.h \
+		tcp/TcpServer.h \
 		library/EpollWrap.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o TcpSocket.o library/TcpSocket.cpp
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o TcpSocket.o tcp/TcpSocket.cpp
 
-HttpRequest.o: library/HttpRequest.cpp library/HttpRequest.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o HttpRequest.o library/HttpRequest.cpp
+HttpRequest.o: http/HttpRequest.cpp http/HttpRequest.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o HttpRequest.o http/HttpRequest.cpp
 
-HttpSocket.o: library/HttpSocket.cpp library/HttpSocket.h \
-		library/TcpSocket.h \
+HttpSocket.o: http/HttpSocket.cpp http/HttpSocket.h \
+		tcp/TcpSocket.h \
 		library/FD.h \
-		library/TcpServer.h \
+		tcp/TcpServer.h \
 		library/EpollWrap.h \
-		library/HttpResponse.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o HttpSocket.o library/HttpSocket.cpp
+		http/HttpResponse.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o HttpSocket.o http/HttpSocket.cpp
 
-HttpResponse.o: library/HttpResponse.cpp library/HttpResponse.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o HttpResponse.o library/HttpResponse.cpp
+HttpResponse.o: http/HttpResponse.cpp http/HttpResponse.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o HttpResponse.o http/HttpResponse.cpp
 
 EpollWrap.o: library/EpollWrap.cpp library/EpollWrap.h \
 		library/FD.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o EpollWrap.o library/EpollWrap.cpp
 
 chat.o: chat.cpp chat.h \
-		library/HttpResponse.h \
-		library/HttpRequest.h \
-		library/HttpSocket.h \
-		library/TcpSocket.h \
+		http/HttpResponse.h \
+		http/HttpRequest.h \
+		http/HttpSocket.h \
+		tcp/TcpSocket.h \
 		library/FD.h \
-		library/TcpServer.h \
+		tcp/TcpServer.h \
 		library/EpollWrap.h \
-		library/HttpServer.h
+		http/HttpServer.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o chat.o chat.cpp
 
-FD.o: library/FD.cpp library/FD.h
+FD.o: library/FD.cpp library/FD.h \
+		library/EpollWrap.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o FD.o library/FD.cpp
+
+Socket.o: tcp/Socket.cpp tcp/Socket.h \
+		library/EpollWrap.h \
+		library/FD.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o Socket.o tcp/Socket.cpp
+
+ServerSocket.o: tcp/ServerSocket.cpp tcp/ServerSocket.h \
+		tcp/Socket.h \
+		library/EpollWrap.h \
+		library/FD.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ServerSocket.o tcp/ServerSocket.cpp
 
 qrc_Resources.o: qrc_Resources.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o qrc_Resources.o qrc_Resources.cpp
