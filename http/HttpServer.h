@@ -4,10 +4,10 @@
 #include <QTextStream>
 #include <QString>
 
-#include "HttpResponse.h"
-#include "HttpSocket.h"
-#include "HttpRequest.h"
-#include "TcpServer.h"
+#include "http/HttpResponse.h"
+#include "http/HttpSocket.h"
+#include "http/HttpRequest.h"
+#include "tcp/TcpServer.h"
 
 class HttpServer {
 //    QMap<TcpSocket*, HttpRequest> requests;

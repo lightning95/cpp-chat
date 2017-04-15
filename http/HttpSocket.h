@@ -3,8 +3,8 @@
 
 #include <QString>
 
-#include "TcpSocket.h"
-#include "HttpResponse.h"
+#include "tcp/TcpSocket.h"
+#include "http/HttpResponse.h"
 
 class HttpSocket {
     TcpSocket &tcp_socket;

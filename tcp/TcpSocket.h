@@ -8,8 +8,8 @@
 #include <QString>
 #include <memory>
 
-#include "FD.h"
-#include "TcpServer.h"
+#include "library/FD.h"
+#include "tcp/TcpServer.h"
 
 class TcpServer;
 

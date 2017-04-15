@@ -5,10 +5,10 @@
 #include <QUrl>
 #include <QFile>
 
-#include "library/HttpResponse.h"
-#include "library/HttpRequest.h"
-#include "library/HttpSocket.h"
-#include "library/HttpServer.h"
+#include "http/HttpResponse.h"
+#include "http/HttpRequest.h"
+#include "http/HttpSocket.h"
+#include "http/HttpServer.h"
 
 #include <iostream>
 #include <fstream>

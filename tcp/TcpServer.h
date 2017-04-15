@@ -12,9 +12,9 @@
 #include <vector>
 #include <exception>
 
-#include "EpollWrap.h"
-#include "FD.h"
-#include "TcpSocket.h"
+#include "library/EpollWrap.h"
+#include "library/FD.h"
+#include "tcp/TcpSocket.h"
 
 class TcpSocket;
 

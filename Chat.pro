@@ -12,23 +12,23 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp \
-    library/HttpServer.cpp \
-    library/TcpServer.cpp \
-    library/TcpSocket.cpp \
-    library/HttpRequest.cpp \
-    library/HttpSocket.cpp \
-    library/HttpResponse.cpp \
+    http/HttpServer.cpp \
+    tcp/TcpServer.cpp \
+    tcp/TcpSocket.cpp \
+    http/HttpRequest.cpp \
+    http/HttpSocket.cpp \
+    http/HttpResponse.cpp \
     library/EpollWrap.cpp \
     chat.cpp \
     library/FD.cpp
 
 HEADERS += \
-    library/HttpServer.h \
-    library/TcpServer.h \
-    library/TcpSocket.h \
-    library/HttpRequest.h \
-    library/HttpSocket.h \
-    library/HttpResponse.h \
+    http/HttpServer.h \
+    tcp/TcpServer.h \
+    tcp/TcpSocket.h \
+    http/HttpRequest.h \
+    http/HttpSocket.h \
+    http/HttpResponse.h \
     library/EpollWrap.h \
     chat.h \
     library/FD.h

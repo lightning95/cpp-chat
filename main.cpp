@@ -2,7 +2,7 @@
 #include <signal.h>
 #include "chat.h"
 
-Chat chat("../chat/html/head", "../chat/html/foot", "../chat/html/forms");
+Chat chat("../cpp-chat/html/head", "../cpp-chat/html/foot", "../cpp-chat/html/forms");
 
 static void handler (int sig, siginfo_t *siginfo, void *context) {
     std::cout << "Signal number: " << sig << std::endl;
