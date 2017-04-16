@@ -17,7 +17,6 @@ ServerSocket::ServerSocket(int port, std::function<void (uint32_t, ServerSocket 
     })
     , port(port) {
     makeSocketNonBlocking(fd);
-    listen(fd);
     epollAdd(fd);
 }
 
@@ -60,13 +59,20 @@ FD ServerSocket::createAndBind(int port) {
             cout << "Can't make socket reusable\n";
             continue;
         }
-        if (bind(res.getfd(), rp->ai_addr, rp->ai_addrlen) == 0)
+        if (bind(res.getfd(), rp->ai_addr, rp->ai_addrlen) == 0){
+            if (::listen(res.getfd(), QUEUE_SIZE) == -1)
+                throw std::runtime_error("Listen error");
             return res;
+        }
     }
     throw std::runtime_error("No address succeeded");
 }
 
-void ServerSocket::listen(FD const&fd){
-    if (::listen(fd.getfd(), QUEUE_SIZE) == -1)
-        throw std::runtime_error("Listen error");
+void ServerSocket::makeSocketNonBlocking(FD const& fd) {
+    int flags = fcntl (fd.getfd(), F_GETFL, 0);
+    if (flags == -1) //return -1;
+        throw std::runtime_error("Can't make socket nonblocking");
+    flags |= O_NONBLOCK;
+    if (fcntl (fd.getfd(), F_SETFL, flags) == -1) //return -1;
+        throw std::runtime_error("Can't make socket nonblocking");
 }

@@ -19,7 +19,9 @@ public:
     FD(int);
     FD();
     ~FD();
+
     FD(FD const&) = delete;
+    FD& operator =(FD const&)  = delete;
 
     FD(FD&&);
     FD& operator =(FD&&);

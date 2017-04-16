@@ -17,7 +17,6 @@ TcpSocket::TcpSocket(FD &&tfd, std::function<void (uint32_t, TcpSocket &)> const
         return z(a, dynamic_cast<TcpSocket &>(socket));
      })
     , buffersize(0) {
-    makeSocketNonBlocking(fd);
     epollAdd(fd);
 }
 

@@ -14,7 +14,6 @@ public:
     int getfd() const;
 
     static const int QUEUE_SIZE = 10;
-    static void makeSocketNonBlocking(FD const &);
     static void epollAdd(FD const&);
 
     virtual ~Socket();

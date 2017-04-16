@@ -22,12 +22,12 @@ class TcpSocket;
 enum EventType {NEWDATA, ERROR, HUP};
 
 class TcpServer {
-    std::map<int, Socket&> callbacks;
-    std::map<int, TcpSocket> tcpSockets;
+    std::map<int, Socket&>      callbacks;
+    std::map<int, TcpSocket>    tcpSockets;
     std::map<int, ServerSocket> serverSockets;
 
     EpollWrap &epoll;
-    bool running;
+    volatile bool running;
 
     void connectionHandler(std::function<void(TcpSocket &, EventType)>, ServerSocket &, uint32_t);
     void dataHandler(std::function<void(TcpSocket &, EventType)>, TcpSocket &, uint32_t);

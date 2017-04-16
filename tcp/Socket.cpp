@@ -11,10 +11,15 @@
 
 using std::cout;
 
-Socket::Socket(FD &&fd, std::function<void(uint32_t, Socket &)> const &handler) : fd(std::move(fd)), handler(handler) {
+Socket::Socket(FD &&fd, std::function<void(uint32_t, Socket &)> const &handler)
+    : fd(std::move(fd))
+    , handler(handler) {
+
 }
 
-Socket::Socket(Socket &&sock) : fd(std::move(sock.fd)), handler(std::move(sock.handler)) {
+Socket::Socket(Socket &&sock)
+    : fd(std::move(sock.fd))
+    , handler(std::move(sock.handler)) {
 }
 
 Socket::~Socket() {
@@ -25,15 +30,6 @@ Socket::~Socket() {
 
 int Socket::getfd() const {
     return fd.getfd();
-}
-
-void Socket::makeSocketNonBlocking(FD const& fd) {
-    int flags = fcntl (fd.getfd(), F_GETFL, 0);
-    if (flags == -1) //return -1;
-        throw std::runtime_error("Can't make socket nonblocking");
-    flags |= O_NONBLOCK;
-    if (fcntl (fd.getfd(), F_SETFL, flags) == -1) //return -1;
-        throw std::runtime_error("Can't make socket nonblocking");
 }
 
 void Socket::epollAdd(FD const& fd){

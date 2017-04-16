@@ -11,7 +11,7 @@ public:
     ServerSocket(ServerSocket &&);
     void handle(uint32_t event);
 
-    static void listen(FD const&);
+    static void makeSocketNonBlocking(FD const&);
     static FD createAndBind(int);
 };
 

@@ -40,7 +40,7 @@ void TcpServer::connectionHandler(std::function<void(TcpSocket &, EventType)> ne
         while (1) {
             sockaddr in_addr;
             socklen_t in_len =  sizeof in_addr;
-            FD infd(accept(fd, &in_addr, &in_len));
+            FD infd(accept4(fd, &in_addr, &in_len, SOCK_NONBLOCK));
             if (infd.getfd() == -1){
                 if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) break;
                 else {
