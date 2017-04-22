@@ -78,6 +78,9 @@ struct Setter{
     ~Setter(){
         old = NULL;
     }
+
+    Setter (Setter const&) = delete;
+    Setter& operator= (Setter const&) = delete;
 };
 
 int main() {

@@ -9,9 +9,8 @@ FD::FD(int fd):fd(fd) {
 
 FD::~FD() {
     if (fd == NONE) return;
-    if (close(fd) < 0){
-        std::cerr<<"Can't close\n";
-    }
+    if (close(fd) < 0)
+        std::cerr << "Can't close\n";
 }
 
 int FD::getfd() const{
