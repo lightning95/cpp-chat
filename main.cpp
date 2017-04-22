@@ -44,7 +44,7 @@ void replaceSignals(){
 
 int main() {
     try {
-        Chat chat("../cpp-chat/html/head", "../cpp-chat/html/foot", "../cpp-chat/html/forms");
+        Chat chat(":/html/head", ":/html/foot", ":/html/forms");
         ref = &chat;
         replaceSignals();
         chat.addPort(4321);
