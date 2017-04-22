@@ -7,9 +7,11 @@
 using namespace std;
 
 struct action {
+    static const int NONE = -1;
+
     int sig;
 
-    action(){}
+    action():sig(NONE){}
 
     action(int sig, struct sigaction n)
         : sig(sig) {
@@ -17,11 +19,29 @@ struct action {
             throw std::runtime_error("Can't replace signal " + std::to_string(sig) + "\n");
     }
 
+    action(action && rhs)
+        : sig(rhs.sig){
+        rhs.sig = NONE;
+    }
+
+    action& operator=(action&& rhs){
+        swap(rhs);
+        return *this;
+    }
+
+    void swap(action& rhs){
+        std::swap(sig, rhs.sig);
+    }
+
     ~action(){
+        if (sig == NONE) return;
         std::cout << "removing signal " << sig << "\n";
         if (signal(SIGINT, SIG_DFL) == SIG_ERR)
             std::cerr << "Can't replace signal back " << sig << "\n";
     }
+
+    action(action const&) = delete;
+    action& operator=(action const&) = delete;
 };
 
 Chat* refChat = NULL;
