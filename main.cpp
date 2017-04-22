@@ -11,7 +11,9 @@ struct action {
 
     int sig;
 
-    action():sig(NONE){}
+    action()
+        :sig(NONE) {
+    }
 
     action(int sig, struct sigaction n)
         : sig(sig) {
@@ -65,18 +67,29 @@ void replaceSignals(vector<action>& actions){
     std::cout << "Signals replaced\n";
 }
 
+struct Setter{
+    Chat*& old;
+
+    Setter(Chat*& o, Chat& c)
+        : old(o) {
+        old = &c;
+    }
+
+    ~Setter(){
+        old = NULL;
+    }
+};
+
 int main() {
-    vector<action> actions;
-    actions.reserve(4);
     try {
         Chat chat(":/html/head", ":/html/foot", ":/html/forms");
-        refChat = &chat;
+        Setter setter(refChat, chat);
 
+        vector<action> actions;
         replaceSignals(actions);
 
         chat.addPort(4321);
         chat.start();
     } catch (std::runtime_error &e){
     }
-    refChat = NULL;
 }
